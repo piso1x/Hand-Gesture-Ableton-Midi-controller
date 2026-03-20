@@ -5,7 +5,7 @@ import mediapipe as mp
 from tracker import Tracker
 from mapper import map_range
 from midi_controller import MidiController
-import utilities
+from utilities import smoother, send_if_moved
 
 #init webcam+tracker
 cap = cv2.VideoCapture(0) 
@@ -52,10 +52,10 @@ while True:
             distance_palm_thumb = math.sqrt((palm.x-thumb.x)**2 + (palm.y-thumb.y)**2)
 
             #maps distance to 0-127 midi acceptable values
-            midiValue_thumb_index = smoother(1, map_range(distance_thumb_index, 0.05, 0.25, 0, 127))
-            midiValue_thumb_middle = smoother(2, map_range(distance_thumb_middle, 0.05, 0.25, 0, 127))
-            midiValue_thumb_ring = smoother(3, map_range(distance_thumb_ring, 0.05, 0.25, 0, 127))
-            midiValue_thumb_pinky = smoother(4, map_range(distance_thumb_pinky, 0.05, 0.25, 0, 127))
+            midiValue_thumb_index = smoother(1, map_range(distance_thumb_index, 0.05, 0.25, 0, 127), 0.2, smoothed_values)
+            midiValue_thumb_middle = smoother(2, map_range(distance_thumb_middle, 0.05, 0.25, 0, 127), 0.2, smoothed_values)
+            midiValue_thumb_ring = smoother(3, map_range(distance_thumb_ring, 0.05, 0.25, 0, 127), 0.2, smoothed_values)
+            midiValue_thumb_pinky = smoother(4, map_range(distance_thumb_pinky, 0.05, 0.25, 0, 127), 0.2, smoothed_values)
 
             # Noise gate fun
             send_if_moved(1, midiValue_thumb_index, last_midi_values, 5, midi_controller, active_cc)
