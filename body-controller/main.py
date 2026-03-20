@@ -5,7 +5,7 @@ import mediapipe as mp
 from tracker import Tracker
 from mapper import map_range
 from midi_controller import MidiController
-from utilities import smoother, send_if_moved, convert_to_coordinates
+from utilities import smoother, send_if_moved, convert_to_coordinates, draw_shadowed_label
 
 #init webcam+tracker
 cap = cv2.VideoCapture(0) 
@@ -56,12 +56,11 @@ while True:
             midiValue_thumb_ring = smoother(3, map_range(distance_thumb_ring, 0.05, 0.25, 0, 127), 0.2, smoothed_values)
             midiValue_thumb_pinky = smoother(4, map_range(distance_thumb_pinky, 0.05, 0.25, 0, 127), 0.2, smoothed_values)
 
-            #draws midi values on the frame for debugging
-            #crea oggetto punto  passagli punto
-            cv2.putText(frame, f"CC1: {midiValue_thumb_index}", convert_to_coordinates(index, frame), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-            cv2.putText(frame, f"CC2: {midiValue_thumb_middle}", convert_to_coordinates(middle, frame), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-            cv2.putText(frame, f"CC3: {midiValue_thumb_ring}", convert_to_coordinates(ring, frame), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-            cv2.putText(frame, f"CC4: {midiValue_thumb_pinky}", convert_to_coordinates(pinky, frame), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+            #draws midi values on the frame
+            draw_shadowed_label(frame, f"CC1: {midiValue_thumb_index}", convert_to_coordinates(index, frame))
+            draw_shadowed_label(frame, f"CC2: {midiValue_thumb_middle}", convert_to_coordinates(middle, frame))
+            draw_shadowed_label(frame, f"CC3: {midiValue_thumb_ring}", convert_to_coordinates(ring, frame))
+            draw_shadowed_label(frame, f"CC4: {midiValue_thumb_pinky}", convert_to_coordinates(pinky, frame))
             
             cv2.imshow("Webcam", frame)
             
