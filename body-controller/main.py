@@ -5,7 +5,7 @@ import mediapipe as mp
 from tracker import Tracker
 from mapper import map_range
 from midi_controller import MidiController
-from utilities import smoother, send_if_moved
+from utilities import smoother, send_if_moved, convert_to_coordinates
 
 #init webcam+tracker
 cap = cv2.VideoCapture(0) 
@@ -28,7 +28,6 @@ while True:
 
             #draw landmarks on the frame
             mp.solutions.drawing_utils.draw_landmarks(frame, landmarkPoints, mp.solutions.hands.HAND_CONNECTIONS)
-            cv2.imshow("Webcam", frame)
             
             #extract coordinates
             thumb = landmarkPoints.landmark[4]
@@ -58,10 +57,12 @@ while True:
             midiValue_thumb_pinky = smoother(4, map_range(distance_thumb_pinky, 0.05, 0.25, 0, 127), 0.2, smoothed_values)
 
             #draws midi values on the frame for debugging
-            cv2.putText(frame, f"CC1: {midiValue_thumb_index}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
-            cv2.putText(frame, f"CC2: {midiValue_thumb_middle}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
-            cv2.putText(frame, f"CC3: {midiValue_thumb_ring}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
-            cv2.putText(frame, f"CC4: {midiValue_thumb_pinky}", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+            cv2.putText(frame, f"CC1: {midiValue_thumb_index}", (convert_to_coordinates(index)[0]+10, convert_to_coordinates(index)[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+            cv2.putText(frame, f"CC2: {midiValue_thumb_middle}", (convert_to_coordinates(middle)[0]+10, convert_to_coordinates(middle)[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+            cv2.putText(frame, f"CC3: {midiValue_thumb_ring}", (convert_to_coordinates(ring)[0]+10, convert_to_coordinates(ring)[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+            cv2.putText(frame, f"CC4: {midiValue_thumb_pinky}", (convert_to_coordinates(pinky)[0]+10, convert_to_coordinates(pinky)[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+            
+            cv2.imshow("Webcam", frame)
             
             # Noise gate fun
             send_if_moved(1, midiValue_thumb_index, last_midi_values, 5, midi_controller, active_cc)
@@ -70,6 +71,7 @@ while True:
             send_if_moved(4, midiValue_thumb_pinky, last_midi_values, 5, midi_controller, active_cc)
 
         # Keyboard input for mode switching -> easier for mapping different pinches
+        
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'): 
             break

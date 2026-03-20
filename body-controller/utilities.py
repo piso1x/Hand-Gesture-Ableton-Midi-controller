@@ -8,3 +8,6 @@ def send_if_moved(cc_num, current_val, last_midi_values, threshold, midi_control
         if abs(current_val - last_midi_values[cc_num]) > threshold:
             midi_controller.send_cc(cc_num, current_val)
             last_midi_values[cc_num] = current_val
+            
+def convert_to_coordinates(landmark):
+    return (int(landmark.x * 640), int(landmark.y * 480))
