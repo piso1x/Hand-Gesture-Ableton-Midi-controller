@@ -57,10 +57,11 @@ while True:
             midiValue_thumb_pinky = smoother(4, map_range(distance_thumb_pinky, 0.05, 0.25, 0, 127), 0.2, smoothed_values)
 
             #draws midi values on the frame for debugging
-            cv2.putText(frame, f"CC1: {midiValue_thumb_index}", (convert_to_coordinates(index)[0]+10, convert_to_coordinates(index)[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
-            cv2.putText(frame, f"CC2: {midiValue_thumb_middle}", (convert_to_coordinates(middle)[0]+10, convert_to_coordinates(middle)[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
-            cv2.putText(frame, f"CC3: {midiValue_thumb_ring}", (convert_to_coordinates(ring)[0]+10, convert_to_coordinates(ring)[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
-            cv2.putText(frame, f"CC4: {midiValue_thumb_pinky}", (convert_to_coordinates(pinky)[0]+10, convert_to_coordinates(pinky)[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+            #crea oggetto punto  passagli punto
+            cv2.putText(frame, f"CC1: {midiValue_thumb_index}", convert_to_coordinates(index, frame), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+            cv2.putText(frame, f"CC2: {midiValue_thumb_middle}", convert_to_coordinates(middle, frame), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+            cv2.putText(frame, f"CC3: {midiValue_thumb_ring}", convert_to_coordinates(ring, frame), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+            cv2.putText(frame, f"CC4: {midiValue_thumb_pinky}", convert_to_coordinates(pinky, frame), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
             
             cv2.imshow("Webcam", frame)
             
