@@ -5,7 +5,7 @@ import mediapipe as mp
 from tracker import Tracker
 from mapper import map_range
 from midi_controller import MidiController
-from utilities import smoother, send_if_moved, convert_to_coordinates, draw_shadowed_label
+from utilities import smoother, send_if_moved, convert_to_coordinates, draw_shadowed_label, store_coordinates, calculate_distance, distances_to_midi_values
 
 #init webcam+tracker
 cap = cv2.VideoCapture(0) 
@@ -19,6 +19,10 @@ last_midi_values = {1: -10, 2: -10, 3: -10, 4: -10}
 active_cc = 0
 smoothed_values = {1: 0, 2: 0, 3: 0, 4: 0}
 alpha = 0.2
+right_hand_coordinates = [] #stores coordinates of right hand fingertips and palm
+right_distances = [] #stores distances between thumb and other fingers for pinch detection
+right_distances_palm = [] #stores distances between palm and fingers for open hand detection
+right_midi_values = [] #stores midi values for open hand detection
 
 while True:
     res, frame = cap.read()
@@ -30,45 +34,30 @@ while True:
             mp.solutions.drawing_utils.draw_landmarks(frame, landmarkPoints, mp.solutions.hands.HAND_CONNECTIONS)
             
             #extract coordinates
-            thumb = landmarkPoints.landmark[4]
-            index = landmarkPoints.landmark[8]
-            middle = landmarkPoints.landmark[12]
-            ring = landmarkPoints.landmark[16]
-            pinky = landmarkPoints.landmark[20]
-            palm = landmarkPoints.landmark[0]
+            store_coordinates(landmarkPoints, right_hand_coordinates)
 
             #calculating distances for pinces
-            distance_thumb_index = math.sqrt((thumb.x-index.x)**2 + (thumb.y-index.y)**2)
-            distance_thumb_middle = math.sqrt((thumb.x-middle.x)**2 + (thumb.y-middle.y)**2)
-            distance_thumb_ring = math.sqrt((thumb.x-ring.x)**2 + (thumb.y-ring.y)**2)
-            distance_thumb_pinky = math.sqrt((thumb.x-pinky.x)**2 + (thumb.y-pinky.y)**2)
+            calculate_distance(right_hand_coordinates, right_distances)
 
             #calculating distances for full open hand
-            distance_palm_index = math.sqrt((palm.x-index.x)**2 + (palm.y-index.y)**2)
-            distance_palm_middle = math.sqrt((palm.x-middle.x)**2 + (palm.y-middle.y)**2)
-            distance_palm_ring = math.sqrt((palm.x-ring.x)**2 + (palm.y-ring.y)**2)
-            distance_palm_pinky = math.sqrt((palm.x-pinky.x)**2 + (palm.y-pinky.y)**2)
-            distance_palm_thumb = math.sqrt((palm.x-thumb.x)**2 + (palm.y-thumb.y)**2)
+            calculate_distance(right_hand_coordinates, right_distances_palm)
 
             #maps distance to 0-127 midi acceptable values
-            midiValue_thumb_index = smoother(1, map_range(distance_thumb_index, 0.05, 0.25, 0, 127), 0.2, smoothed_values)
-            midiValue_thumb_middle = smoother(2, map_range(distance_thumb_middle, 0.05, 0.25, 0, 127), 0.2, smoothed_values)
-            midiValue_thumb_ring = smoother(3, map_range(distance_thumb_ring, 0.05, 0.25, 0, 127), 0.2, smoothed_values)
-            midiValue_thumb_pinky = smoother(4, map_range(distance_thumb_pinky, 0.05, 0.25, 0, 127), 0.2, smoothed_values)
+            distances_to_midi_values(right_distances, smoothed_values, alpha, right_midi_values)
 
             #draws midi values on the frame
-            draw_shadowed_label(frame, f"CC1: {midiValue_thumb_index}", convert_to_coordinates(index, frame))
-            draw_shadowed_label(frame, f"CC2: {midiValue_thumb_middle}", convert_to_coordinates(middle, frame))
-            draw_shadowed_label(frame, f"CC3: {midiValue_thumb_ring}", convert_to_coordinates(ring, frame))
-            draw_shadowed_label(frame, f"CC4: {midiValue_thumb_pinky}", convert_to_coordinates(pinky, frame))
-            
+            draw_shadowed_label(frame, f"CC1: {right_midi_values[0]}", convert_to_coordinates(right_hand_coordinates[1], frame))
+            draw_shadowed_label(frame, f"CC2: {right_midi_values[1]}", convert_to_coordinates(right_hand_coordinates[2], frame))
+            draw_shadowed_label(frame, f"CC3: {right_midi_values[2]}", convert_to_coordinates(right_hand_coordinates[3], frame))
+            draw_shadowed_label(frame, f"CC4: {right_midi_values[3]}", convert_to_coordinates(right_hand_coordinates[4], frame))
+
             cv2.imshow("Webcam", frame)
             
             # Noise gate fun
-            send_if_moved(1, midiValue_thumb_index, last_midi_values, 5, midi_controller, active_cc)
-            send_if_moved(2, midiValue_thumb_middle, last_midi_values, 5, midi_controller, active_cc)
-            send_if_moved(3, midiValue_thumb_ring, last_midi_values, 5, midi_controller, active_cc)
-            send_if_moved(4, midiValue_thumb_pinky, last_midi_values, 5, midi_controller, active_cc)
+            send_if_moved(1, right_midi_values[0], last_midi_values, 5, midi_controller, active_cc)
+            send_if_moved(2, right_midi_values[1], last_midi_values, 5, midi_controller, active_cc)
+            send_if_moved(3, right_midi_values[2], last_midi_values, 5, midi_controller, active_cc)
+            send_if_moved(4, right_midi_values[3], last_midi_values, 5, midi_controller, active_cc)
 
         # Keyboard input for mode switching -> easier for mapping different pinches
         

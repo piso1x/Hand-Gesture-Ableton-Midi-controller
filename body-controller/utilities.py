@@ -1,4 +1,8 @@
 import cv2
+import math
+import mediapipe as mp
+from tracker import Tracker
+from mapper import map_range
 
 #smooths the midi values to avoid sudden jumps and create a more natural control experience
 def smoother(cc_num, current_val, alpha, smoothed_values):
@@ -37,3 +41,32 @@ def draw_shadowed_label(frame, text, anchor):
     cv2.rectangle(frame, shadow_top_left, shadow_bottom_right, (40, 40, 40), -1)
     cv2.rectangle(frame, top_left, bottom_right, (0, 0, 0), -1)
     cv2.putText(frame, text, (x, y), font, font_scale, (255, 255, 255), thickness)
+    
+def store_coordinates(landmarkPoints, right_hand_coordinates):
+    thumb = landmarkPoints.landmark[4]
+    index = landmarkPoints.landmark[8]
+    middle = landmarkPoints.landmark[12]
+    ring = landmarkPoints.landmark[16]
+    pinky = landmarkPoints.landmark[20]
+    palm = landmarkPoints.landmark[0]
+
+    right_hand_coordinates.clear()
+    right_hand_coordinates.extend([thumb, index, middle, ring, pinky, palm])
+    
+def calculate_distance(right_hand_coordinates, right_distances):
+    distance_thumb_index = math.sqrt((right_hand_coordinates[0].x-right_hand_coordinates[1].x)**2 + (right_hand_coordinates[0].y-right_hand_coordinates[1].y)**2)
+    distance_thumb_middle = math.sqrt((right_hand_coordinates[0].x-right_hand_coordinates[2].x)**2 + (right_hand_coordinates[0].y-right_hand_coordinates[2].y)**2)
+    distance_thumb_ring = math.sqrt((right_hand_coordinates[0].x-right_hand_coordinates[3].x)**2 + (right_hand_coordinates[0].y-right_hand_coordinates[3].y)**2)
+    distance_thumb_pinky = math.sqrt((right_hand_coordinates[0].x-right_hand_coordinates[4].x)**2 + (right_hand_coordinates[0].y-right_hand_coordinates[4].y)**2)
+
+    right_distances.clear()
+    right_distances.extend([distance_thumb_index, distance_thumb_middle, distance_thumb_ring, distance_thumb_pinky])
+    
+def distances_to_midi_values(right_distances, smoothed_values, alpha, right_midi_values):
+    midiValue_thumb_index = smoother(1, map_range(right_distances[0], 0.05, 0.25, 0, 127), alpha, smoothed_values)
+    midiValue_thumb_middle = smoother(2, map_range(right_distances[1], 0.05, 0.25, 0, 127), alpha, smoothed_values)
+    midiValue_thumb_ring = smoother(3, map_range(right_distances[2], 0.05, 0.25, 0, 127), alpha, smoothed_values)
+    midiValue_thumb_pinky = smoother(4, map_range(right_distances[3], 0.05, 0.25, 0, 127), alpha, smoothed_values)
+
+    right_midi_values.clear()
+    right_midi_values.extend([midiValue_thumb_index, midiValue_thumb_middle, midiValue_thumb_ring, midiValue_thumb_pinky])
