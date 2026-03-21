@@ -42,7 +42,8 @@ while True:
         detections = tracker.process(frame)
         right_landmarks = None
         left_landmarks = None
-
+        
+        #draw landmarks and separate right and left hand
         for hand_landmarks, handedness in detections:
             label = handedness.classification[0].label
             mp.solutions.drawing_utils.draw_landmarks(frame, hand_landmarks, mp.solutions.hands.HAND_CONNECTIONS,
@@ -54,6 +55,7 @@ while True:
             elif label == "Left":
                 left_landmarks = hand_landmarks
 
+        #right hand processing
         if right_landmarks:
             store_coordinates(right_landmarks, right_hand_coordinates)
             calculate_distance(right_hand_coordinates, right_distances)
@@ -69,7 +71,8 @@ while True:
             send_if_moved(2, right_midi_values[1], last_midi_values, 5, midi_controller, active_cc)
             send_if_moved(3, right_midi_values[2], last_midi_values, 5, midi_controller, active_cc)
             send_if_moved(4, right_midi_values[3], last_midi_values, 5, midi_controller, active_cc)
-
+        
+        #left hand processing
         if left_landmarks:
             store_coordinates(left_landmarks, left_hand_coordinates)
             calculate_distance(left_hand_coordinates, left_distances)
