@@ -3,6 +3,7 @@ import math
 import mediapipe as mp
 from tracker import Tracker
 from mapper import map_range
+import time
 
 #smooths the midi values to avoid sudden jumps and create a more natural control experience
 def smoother(cc_num, current_val, alpha, smoothed_values):
@@ -70,3 +71,31 @@ def distances_to_midi_values(right_distances, smoothed_values, alpha, right_midi
 
     right_midi_values.clear()
     right_midi_values.extend([midiValue_thumb_index, midiValue_thumb_middle, midiValue_thumb_ring, midiValue_thumb_pinky])
+    
+def draw_labels(frame, right_midi_values, hand_coordinates):
+    draw_shadowed_label(frame, f"CC1: {right_midi_values[0]}", convert_to_coordinates(hand_coordinates[1], frame))
+    draw_shadowed_label(frame, f"CC2: {right_midi_values[1]}", convert_to_coordinates(hand_coordinates[2], frame))
+    draw_shadowed_label(frame, f"CC3: {right_midi_values[2]}", convert_to_coordinates(hand_coordinates[3], frame))
+    draw_shadowed_label(frame, f"CC4: {right_midi_values[3]}", convert_to_coordinates(hand_coordinates[4], frame))
+    
+def send_midi_messages(midi_values, last_midi_values, threshold, midi_controller, active_cc):
+    send_if_moved(1, midi_values[0], last_midi_values, threshold, midi_controller, active_cc)
+    send_if_moved(2, midi_values[1], last_midi_values, threshold, midi_controller, active_cc)
+    send_if_moved(3, midi_values[2], last_midi_values, threshold, midi_controller, active_cc)
+    send_if_moved(4, midi_values[3], last_midi_values, threshold, midi_controller, active_cc)
+
+def handle_mode_key(key, active_cc, overlay_text, overlay_until, overlay_duration=3.0):
+    match key:
+        case value if value == ord('q'):
+            return active_cc, overlay_text, overlay_until, True
+        case value if value == ord('0'):
+            active_cc = 0
+            overlay_text = "---> PLAY MODE <---"
+            overlay_until = time.perf_counter() + overlay_duration
+            print("\n---> PLAY MODE <---")
+        case value if value in (ord('1'), ord('2'), ord('3'), ord('4'), ord('5'), ord('6'), ord('7'), ord('8')):
+            active_cc = int(chr(value))
+            overlay_text = f"---> MAP MODE (CC{active_cc}) <---"
+            overlay_until = time.perf_counter() + overlay_duration
+            print(f"\n{overlay_text}")
+    return active_cc, overlay_text, overlay_until, False
