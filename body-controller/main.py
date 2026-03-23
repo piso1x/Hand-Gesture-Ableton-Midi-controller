@@ -34,10 +34,14 @@ left_midi_values = [] #stores midi values for open hand detection
 
 overlay_text = ""
 overlay_until = 0.0
+MIRROR_VIEW = True
 
 while True:
     res, frame = cap.read()
     if res:
+        #starts processing the frame and extracting hand landmarks
+        if MIRROR_VIEW:
+            frame = cv2.flip(frame, 1)
         detections = tracker.process(frame)
         right_landmarks = None
         left_landmarks = None
@@ -45,6 +49,8 @@ while True:
         #draw landmarks and separate right and left hand
         for hand_landmarks, handedness in detections:
             label = handedness.classification[0].label
+            if not MIRROR_VIEW:
+                label = "Left" if label == "Right" else "Right"
             mp.solutions.drawing_utils.draw_landmarks(frame, hand_landmarks, mp.solutions.hands.HAND_CONNECTIONS,
                 mp.solutions.drawing_utils.DrawingSpec(color=(0,255,0), thickness=5, circle_radius=5),
                 mp.solutions.drawing_utils.DrawingSpec(color=(255,0,0), thickness=2)
@@ -79,10 +85,10 @@ while True:
         # Keyboard input for mode switching -> easier for mapping different pinches
         key = cv2.waitKey(1) & 0xFF 
         active_cc, overlay_text, overlay_until, should_quit = handle_mode_key(key, active_cc, overlay_text, overlay_until)
-
         if should_quit:
             break
-
+        
+        # Draw overlay text if needed
         if time.perf_counter() < overlay_until:
             draw_shadowed_label(frame, overlay_text, (frame.shape[1]//2-30, 40))
 
