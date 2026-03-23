@@ -43,46 +43,37 @@ def draw_shadowed_label(frame, text, anchor):
     cv2.rectangle(frame, top_left, bottom_right, (0, 0, 0), -1)
     cv2.putText(frame, text, (x, y), font, font_scale, (255, 255, 255), thickness)
     
-def store_coordinates(landmarkPoints, right_hand_coordinates):
-    thumb = landmarkPoints.landmark[4]
-    index = landmarkPoints.landmark[8]
-    middle = landmarkPoints.landmark[12]
-    ring = landmarkPoints.landmark[16]
-    pinky = landmarkPoints.landmark[20]
-    palm = landmarkPoints.landmark[0]
+def store_coordinates(landmark_points, right_hand_coordinates):
+    thumb = landmark_points.landmark[4]
+    index = landmark_points.landmark[8]
+    middle = landmark_points.landmark[12]
+    ring = landmark_points.landmark[16]
+    pinky = landmark_points.landmark[20]
+    palm = landmark_points.landmark[0]
 
     right_hand_coordinates.clear()
     right_hand_coordinates.extend([thumb, index, middle, ring, pinky, palm])
     
 def calculate_distance(right_hand_coordinates, right_distances):
-    distance_thumb_index = math.sqrt((right_hand_coordinates[0].x-right_hand_coordinates[1].x)**2 + (right_hand_coordinates[0].y-right_hand_coordinates[1].y)**2)
-    distance_thumb_middle = math.sqrt((right_hand_coordinates[0].x-right_hand_coordinates[2].x)**2 + (right_hand_coordinates[0].y-right_hand_coordinates[2].y)**2)
-    distance_thumb_ring = math.sqrt((right_hand_coordinates[0].x-right_hand_coordinates[3].x)**2 + (right_hand_coordinates[0].y-right_hand_coordinates[3].y)**2)
-    distance_thumb_pinky = math.sqrt((right_hand_coordinates[0].x-right_hand_coordinates[4].x)**2 + (right_hand_coordinates[0].y-right_hand_coordinates[4].y)**2)
-
     right_distances.clear()
-    right_distances.extend([distance_thumb_index, distance_thumb_middle, distance_thumb_ring, distance_thumb_pinky])
+    thumb = right_hand_coordinates[0]
+    for finger in right_hand_coordinates[1:5]:
+        distance = math.sqrt((thumb.x - finger.x) ** 2 + (thumb.y - finger.y) ** 2)
+        right_distances.append(distance)
     
 def distances_to_midi_values(right_distances, smoothed_values, alpha, right_midi_values):
-    midiValue_thumb_index = smoother(1, map_range(right_distances[0], 0.05, 0.25, 0, 127), alpha, smoothed_values)
-    midiValue_thumb_middle = smoother(2, map_range(right_distances[1], 0.05, 0.25, 0, 127), alpha, smoothed_values)
-    midiValue_thumb_ring = smoother(3, map_range(right_distances[2], 0.05, 0.25, 0, 127), alpha, smoothed_values)
-    midiValue_thumb_pinky = smoother(4, map_range(right_distances[3], 0.05, 0.25, 0, 127), alpha, smoothed_values)
-
     right_midi_values.clear()
-    right_midi_values.extend([midiValue_thumb_index, midiValue_thumb_middle, midiValue_thumb_ring, midiValue_thumb_pinky])
+    for cc_num, distance in enumerate(right_distances, start=1):
+        midi_value = smoother(cc_num, map_range(distance, 0.05, 0.25, 0, 127), alpha, smoothed_values)
+        right_midi_values.append(midi_value)
     
-def draw_labels(frame, right_midi_values, hand_coordinates):
-    draw_shadowed_label(frame, f"CC1: {right_midi_values[0]}", convert_to_coordinates(hand_coordinates[1], frame))
-    draw_shadowed_label(frame, f"CC2: {right_midi_values[1]}", convert_to_coordinates(hand_coordinates[2], frame))
-    draw_shadowed_label(frame, f"CC3: {right_midi_values[2]}", convert_to_coordinates(hand_coordinates[3], frame))
-    draw_shadowed_label(frame, f"CC4: {right_midi_values[3]}", convert_to_coordinates(hand_coordinates[4], frame))
+def draw_labels(frame, right_midi_values, hand_coordinates, cc_start=1):
+    for cc_num, (midi_value, coordinate) in enumerate(zip(right_midi_values, hand_coordinates[1:]), start=cc_start):
+        draw_shadowed_label(frame, f"CC{cc_num}: {midi_value}", convert_to_coordinates(coordinate, frame))
     
-def send_midi_messages(midi_values, last_midi_values, threshold, midi_controller, active_cc):
-    send_if_moved(1, midi_values[0], last_midi_values, threshold, midi_controller, active_cc)
-    send_if_moved(2, midi_values[1], last_midi_values, threshold, midi_controller, active_cc)
-    send_if_moved(3, midi_values[2], last_midi_values, threshold, midi_controller, active_cc)
-    send_if_moved(4, midi_values[3], last_midi_values, threshold, midi_controller, active_cc)
+def send_midi_messages(midi_values, last_midi_values, threshold, midi_controller, active_cc, cc_start):    
+    for cc_num, midi_value in enumerate(midi_values, start=cc_start):
+        send_if_moved(cc_num, midi_value, last_midi_values, threshold, midi_controller, active_cc)
 
 def handle_mode_key(key, active_cc, overlay_text, overlay_until, overlay_duration=3.0):
     match key:

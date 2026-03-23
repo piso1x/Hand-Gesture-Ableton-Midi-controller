@@ -20,8 +20,7 @@ last_midi_values = {1: -10, 2: -10, 3: -10, 4: -10}
 last_left_midi_values = {5: -10, 6: -10, 7: -10, 8: -10}
 active_cc = 0
 smoothed_values = {1: 0, 2: 0, 3: 0, 4: 0}
-smoothed_left_values = {1: 0, 2: 0, 3: 0, 4: 0}
-alpha = 0.2
+alpha = 0.1
 
 right_hand_coordinates = [] #stores coordinates of right hand fingertips and palm
 right_distances = [] #stores distances between thumb and other fingers for pinch detection
@@ -62,20 +61,20 @@ while True:
             #calculate_distance(right_hand_coordinates, right_distances_palm)
             distances_to_midi_values(right_distances, smoothed_values, alpha, right_midi_values)
 
-            draw_labels(frame, right_midi_values, right_hand_coordinates)
+            draw_labels(frame, right_midi_values, right_hand_coordinates, cc_start=1)
 
-            send_midi_messages(right_midi_values, last_midi_values, 5, midi_controller, active_cc)
+            send_midi_messages(right_midi_values, last_midi_values, 5, midi_controller, active_cc, 1)
         
         #left hand processing
         if left_landmarks:
             store_coordinates(left_landmarks, left_hand_coordinates)
             calculate_distance(left_hand_coordinates, left_distances)
             #calculate_distance(left_hand_coordinates, left_distances_palm)
-            distances_to_midi_values(left_distances, smoothed_left_values, alpha, left_midi_values)
+            distances_to_midi_values(left_distances, smoothed_values, alpha, left_midi_values)
 
-            draw_labels(frame, left_midi_values, left_hand_coordinates)
+            draw_labels(frame, left_midi_values, left_hand_coordinates, cc_start=5)
 
-            send_midi_messages(left_midi_values, last_left_midi_values, 5, midi_controller, active_cc)
+            send_midi_messages(left_midi_values, last_left_midi_values, 5, midi_controller, active_cc, 5)
 
         # Keyboard input for mode switching -> easier for mapping different pinches
         key = cv2.waitKey(1) & 0xFF 
